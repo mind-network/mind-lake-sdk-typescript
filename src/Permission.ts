@@ -16,6 +16,7 @@ export default class Permission {
 
   constructor(sdk: MindLake) {
     this.service = sdk.service;
+    this.web3 = sdk.web3;
     this.sdk = sdk;
   }
 
