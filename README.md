@@ -63,6 +63,8 @@ Full doc: [https://mind-network.gitbook.io/mind-lake-sdk](https://mind-network.g
 
 * v1.0.0
     * Initial Release
+* v1.0.1
+    * Fix bug
 
 ## License
 

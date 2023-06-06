@@ -126,6 +126,7 @@ export class Web3Interact {
       this.mkCipherBuffer = undefined!;
       this.mkBuffer = undefined!;
       this.privateKeyCipherBuffer = undefined!;
+      this.publicKey = undefined!;
     }
   }
 
@@ -222,6 +223,7 @@ export class Web3Interact {
     const {publicKeyPem, privateKeyPem} = CipherHelper.getPublicKeyPemFromPrivate(decrypt);
     return { privateKeyPem, publicKeyPem };
   }
+
 
   /**
    *load keys form chain
