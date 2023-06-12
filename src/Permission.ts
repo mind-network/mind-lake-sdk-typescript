@@ -164,6 +164,31 @@ export default class Permission {
     }
   }
 
+  public async listOwner(): Promise<ResultType> {
+    try {
+      const data = await this.service.execute({ bizType: 130 });
+      return Result.success(data);
+    } catch (e) {
+      console.error(e);
+      return Result.fail(e);
+    }
+  }
+
+  public async listOwnerColumn(
+    targetWalletAddress: string,
+  ): Promise<ResultType> {
+    try {
+      const data = await this.service.execute({
+        bizType: 131,
+        targetWalletAddress,
+      });
+      return Result.success(data);
+    } catch (e) {
+      console.error(e);
+      return Result.fail(e);
+    }
+  }
+
   public async listGrantedColumn(
     targetWalletAddress: string,
   ): Promise<ResultType> {

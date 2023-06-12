@@ -70,7 +70,9 @@ Full doc: [https://mind-network.gitbook.io/mind-lake-sdk](https://mind-network.g
     * Fix bug
 * v1.0.2
     * Fix bug    
-
+* v1.0.4
+    * Add listOwner method to Permission Class
+    * Add listOwnerColumn method to Permission Class
 ## License
 
 This project is licensed under the [MIT] License - see the LICENSE.md file for details
