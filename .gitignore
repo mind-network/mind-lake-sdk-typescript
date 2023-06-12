@@ -3,5 +3,5 @@
 .DS_Store
 .idea
 .editorconfig
-example/src/myconfig.ts
+examples/src/myconfig.ts
 .npmrc
