@@ -148,7 +148,7 @@ An example of the output is:
 ## :star2: 2. Install Node
 ### :art: 2.1 Install Node
 ```
-nvm install 16.13.1
+nvm install 16
 ```
 An example of the output is:
 ```
@@ -166,7 +166,7 @@ nvm use 16.13.1
 ### :art: 2.2 Select right Node 16 version if not correct
 `Node16` is recommended. `Node18` still have issues and is not recommeded right now,
 ```cmd
-nvm use 16.13.1
+nvm use 16
 ```
 An example of the output is:
 ```
@@ -208,7 +208,7 @@ An example of the output is:
 `myconfig.ts` contains the settings of parameters used in examples and use cases, you can copy `myconfig_template.ts` to the name `myconfig.ts` and modify it as per your requirement. If you want to run the examples of quickStart, Use Case 1 and Use Case 2, you only need to fill out `appKey`. If you want to run Use Case 3, you need to fill out the walltes info for all of Alice, Bob and Charlie
 ```
 export const appKey = "YOUR_APP_KEY";
-export const nodeUrl = "https://sdk.mindnetwork.xyz"; // or change to other node ur
+export const nodeUrl = "https://sdk.mindnetwork.xyz"; // or change to other node url
 export const aliceWalletAddress = "Alice_Wallet_Address";
 export const bobWalletAddress = "Bob_Wallet_Address";
 export const charlieWalletAddress = "Charlie_Wallet_Address";
@@ -218,8 +218,12 @@ export const charlieWalletAddress = "Charlie_Wallet_Address";
 #### :dart: 4.1.1 Install Wallet
 1. Install [MetaMask](https://metamask.io/download/) plugins in Chrome Browser
 2. [Sign up a MetaMask Wallet](https://myterablock.medium.com/how-to-create-or-import-a-metamask-wallet-a551fc2f5a6b)
-3. Change the network to Goerli TestNet
-4. Goerli Faucet for later gas fee if does not have: [Alchemy Goerli Faucet](https://goerlifaucet.com/), [Quicknode Goerli Faucet](https://faucet.quicknode.com/ethereum/goerli), [Moralis Goerli Faucet](https://moralis.io/faucets/)
+3. Change the network to Goerli TestNet. If the TestNets aren't displayed, turn on "Show test networks" in Settings.
+
+![MetaMask TestNet](imgs/metamask_testnet_enable.png)
+
+4. Change the network to Goerli TestNet
+5. Goerli Faucet for later gas fee if does not have: [Alchemy Goerli Faucet](https://goerlifaucet.com/), [Quicknode Goerli Faucet](https://faucet.quicknode.com/ethereum/goerli), [Moralis Goerli Faucet](https://moralis.io/faucets/)
 
   ![image](./imgs/change_chain.png)
   
@@ -286,6 +290,7 @@ An example of the output is:
   - Local:   http://localhost:8002 (copied to clipboard)
   - Network: http://192.168.137.1:8002
 ```
+By default use 8000 as port number. But will auto increase port number if 8000 is used. You may see 8000 in your side. The example bellow 8002. Use the port number shown in your terminal.
 Open a browser and visit `http://localhost:8002` 
 
 ### :art: 5.1 QuickStart

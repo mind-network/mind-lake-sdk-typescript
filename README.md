@@ -47,7 +47,8 @@ mind-lake-sdk-typescript
 |   |-- Permission.ts
 |   |-- Cryptor.ts
 |-- tests # unit test code
-|-- example # use case examples
+|-- examples # use case examples
+|-- tutorial # step-by-step tutorial
 |-- README.md
 └--- LICENSE
 
