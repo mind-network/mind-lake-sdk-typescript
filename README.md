@@ -25,16 +25,18 @@ $ npm install --save mind-lake-sdk
 $ yarn add mind-lake-sdk
 ```
 
-### Executing program
-
-* [quick starts](https://mind-network.gitbook.io/mind-lake-sdk/get-started)
-* [more examples](https://mind-network.gitbook.io/mind-lake-sdk/use-cases)
-* Step-by-step bullets
+### Import 
 ```
 import { MindLake } from "mind-lake-sdk";
 const mindLake = await MindLake.getInstance("YOUR OWN APP KEY")
 ...
 ```
+
+### Executing program
+* [step-by-step tutorial](/tutorial/README.md)
+* [quick starts](https://mind-network.gitbook.io/mind-lake-sdk/get-started)
+* [more examples](https://mind-network.gitbook.io/mind-lake-sdk/use-cases)
+
 
 ## code
 ```
@@ -45,7 +47,8 @@ mind-lake-sdk-typescript
 |   |-- Permission.ts
 |   |-- Cryptor.ts
 |-- tests # unit test code
-|-- example # use case examples
+|-- examples # use case examples
+|-- tutorial # step-by-step tutorial
 |-- README.md
 └--- LICENSE
 
@@ -65,6 +68,8 @@ Full doc: [https://mind-network.gitbook.io/mind-lake-sdk](https://mind-network.g
     * Initial Release
 * v1.0.1
     * Fix bug
+* v1.0.2
+    * Fix bug    
 
 ## License
 
