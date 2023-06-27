@@ -70,16 +70,12 @@ export class MindLake {
 
   public static async getInstance(appKey: string, nodeUrl?: string): Promise<MindLake> {
     if (this.instance === undefined) {
-      try {
         this.instance = new MindLake(appKey, nodeUrl);
         await this.instance.web3.checkConnection();
         await this.instance._getServerInfo();
         this.instance.crypto = new Crypto(this.instance);
         this.instance.dataLake = new DataLake(this.instance);
         this.instance.permission = new Permission(this.instance);
-      }catch (e) {
-        console.error(e);
-      }
     }
     return this.instance;
   }
@@ -146,7 +142,7 @@ export class MindLake {
       this.isRegistered = info.isRegistered && info.isMekProvision && info.isSelfBcl;
       this.mekId = info.mekId;
       if (this.isRegistered && this.mekId) {
-        this._getAccount();
+        await this._getAccount();
       }
     }
   }

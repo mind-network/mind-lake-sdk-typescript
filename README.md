@@ -46,7 +46,6 @@ mind-lake-sdk-typescript
 |   |-- DataLake.ts
 |   |-- Permission.ts
 |   |-- Cryptor.ts
-|-- tests # unit test code
 |-- examples # use case examples
 |-- tutorial # step-by-step tutorial
 |-- README.md
@@ -73,6 +72,8 @@ Full doc: [https://mind-network.gitbook.io/mind-lake-sdk](https://mind-network.g
 * v1.0.4
     * Add listOwner method to Permission Class
     * Add listOwnerColumn method to Permission Class
+* v1.0.5
+    * Fix bug    
 ## License
 
 This project is licensed under the [MIT] License - see the LICENSE.md file for details
