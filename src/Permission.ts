@@ -8,8 +8,6 @@ import Result from './util/result';
 export default class Permission {
   private readonly service!: Service;
 
-  private readonly registerPukId!: string;
-
   private readonly web3!: Web3Interact;
 
   private readonly sdk!: MindLake;
@@ -84,7 +82,7 @@ export default class Permission {
         throw new Error('The policyID is not correct');
       }
       const { privateKeyPem } = await this.web3.getPkPem();
-      const sn = bcl.issueBcl(privateKeyPem, 117);
+      const sn = await bcl.issueBcl(privateKeyPem, 117);
       return Result.success(sn);
     } catch (e) {
       console.error(e);
@@ -115,7 +113,7 @@ export default class Permission {
           "Peer user (Subject)'s certificate hasn't been registered.",
         );
       }
-      await bcl.loadBclBodyByPukId(this.registerPukId, res.publicKeyId);
+      await bcl.loadBclBodyByPukId(this.sdk.registerPukId, res.publicKeyId);
       if (!bcl.bclBody || !bcl.bclBody.serial_num) {
         throw new Error('No grant required to revoke!');
       }
@@ -146,7 +144,7 @@ export default class Permission {
         bcl.removeDekGroup(groupIdArray);
       }
       const { privateKeyPem } = await this.web3.getPkPem();
-      const sn = await bcl.issueBcl(privateKeyPem, 117);
+      const sn = await bcl.issueBcl(privateKeyPem, 115);
       return Result.success(sn);
     } catch (e) {
       console.error(e);

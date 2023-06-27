@@ -1,13 +1,12 @@
 {
   "name": "mind-lake-sdk",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "father dev",
     "prettier": "prettier --write src/**/*.{js,jsx,tsx,ts,json}",
-    "test": "jest --clearCache && jest",
     "build": "cross-env NODE_ENV=production && father build",
     "build:deps": "father prebundle",
     "prepublishOnly": "father doctor && npm run build"
@@ -49,6 +48,7 @@
     "ts-jest": "^29.1.0",
     "prettier": "2.8.8",
     "ts-node": "^10.9.1",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "log4js": "^6.9.1"
   }
 }
