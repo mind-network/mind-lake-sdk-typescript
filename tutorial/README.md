@@ -127,6 +127,11 @@ Open a browser and visit `http://localhost:8002`
   
   Copy Alice,Bob,Charlie' wallet address into myconfig.ts to update `aliceWalletAddress` `bobWalletAddress` `charlieWalletAddress`
 
+  > **Note**
+  > During testing period, please make you have all wallet address are registered in into whitelist: https://sites.google.com/mindnetwork.xyz/mindnetwork/alpha-test.
+  > Be more specific, please ensure your Alice, Bob and Charlie are registered and approved. Otherwise, you may experience the error on sharing. 
+
+
 2. Open a browser and visit `http://localhost:8002/use_case_3`
 
 ![image](./imgs/case_3.png)
