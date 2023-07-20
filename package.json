@@ -1,12 +1,21 @@
 {
   "name": "mind-lake-sdk",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "father dev",
     "prettier": "prettier --write src/**/*.{js,jsx,tsx,ts,json}",
+    "test-all": "npm run test-create && npm run test-delete && npm run test-drop && npm run test-encrypt && npm run test-insert && npm run test-link && npm run test-update && npm run test-sharing",
+    "test-create": "jest create",
+    "test-delete": "jest delete",
+    "test-drop": "jest drop",
+    "test-encrypt": "jest encrypt",
+    "test-insert": "jest insert",
+    "test-link": "jest link --testNamePattern=alice_init_data && jest link --testNamePattern=test_link_table_to_otherwalletcocoon_bob",
+    "test-sharing": "jest sharing --testNamePattern=Alice_init_encrypt_data && jest sharing --testNamePattern=no_grant_bob_try_to_decrypt && jest sharing --testNamePattern=grant_column_1 && jest sharing --testNamePattern=confirm_grant && jest sharing --testNamePattern=grant_column_3 && jest sharing --testNamePattern=confirm_grant_3",
+    "test-update": "jest update",
     "build": "cross-env NODE_ENV=production && father build",
     "build:deps": "father prebundle",
     "prepublishOnly": "father doctor && npm run build"

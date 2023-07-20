@@ -149,11 +149,11 @@ export class MindLake {
 
   private async _init() {
     await this._getServerInfo();
+    const provisionRes = await this._mekProvision();
+    if (!provisionRes) {
+      throw new Error('Provision failed');
+    }
     if (!this.isRegistered) {
-      const provisionRes = await this._mekProvision();
-      if (!provisionRes) {
-        throw new Error('Provision failed');
-      }
       const { privateKeyPem, publicKeyPem } = await this.web3.getPkPem();
       const registerPukId = await this._registerCertificate(
         publicKeyPem,
@@ -177,7 +177,7 @@ export class MindLake {
    */
   private async _mekProvision() {
     if (!this.publicKey) {
-      return;
+      throw new Error('Provision failed: The public key is not empty');
     }
     const pubKey = this.publicKey.replace('\\n', '\n');
     const ephemeralKey = CipherHelper.randomBytes();
