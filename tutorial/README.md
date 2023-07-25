@@ -164,6 +164,7 @@ For bellow steps, we have list the command and screenshot in Option 3 by default
   > During testing period, please make you have all wallet address are registered in into whitelist: https://sites.google.com/mindnetwork.xyz/mindnetwork/alpha-test.
   > Be more specific, please ensure your Alice, Bob and Charlie are registered and approved. Otherwise, you may experience the error on sharing. 
 
+
 2. Open a browser and visit `http://localhost:8002/use_case_3`
     - For Option 1, we hosted a same page on Arweave: https://arweave.net/QR03v_GcZlEnbuny9e5kb149WL4E2_gFe8pbFOMExbE
     - For Option 2, you may see docker instance and visit your browser in http://localhost:92/use_case_3.html  
