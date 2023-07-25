@@ -1,0 +1,27 @@
+# Dockerfile_use_case1
+# build front-end
+FROM node:16 AS frontend
+
+WORKDIR /app
+
+COPY ./ /app
+
+#COPY ./pnpm-lock.yaml /app
+RUN node -v
+
+#RUN npm install --registry=https://registry.npmmirror.com/
+RUN npm install --registry=https://registry.npmmirror.com/
+
+#ENV NODE_OPTIONS=--openssl-legacy-provider
+
+RUN npm run build
+
+COPY ./ /app
+
+FROM nginx:stable-alpine
+#
+COPY --from=frontend /app/dist/use_case_1 /usr/share/nginx/html
+##
+COPY --from=frontend /app/ngnix/nginx_case_1.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
