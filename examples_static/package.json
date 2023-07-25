@@ -1,0 +1,24 @@
+{
+  "private": true,
+  "scripts": {
+    "start": "umi dev",
+    "build": "umi build",
+    "build-to-ipfs": "umi build",
+    "build-to-arweave": "umi build && node build_arweave.js",
+    "analyze": "cross-env ANALYZE=1 umi build"
+  },
+  "dependencies": {
+    "js-md5": "^0.7.3",
+    "mind-lake-sdk": "latest",
+    "react": "17.x",
+    "react-dom": "17.x",
+    "umi": "^3.5.23"
+  },
+  "devDependencies": {
+    "@types/react": "^17.0.0",
+    "@types/react-dom": "^17.0.0",
+    "typescript": "^4.1.2",
+    "yorkie": "^2.0.0",
+    "cross-env": "^7.0.0"
+  }
+}
