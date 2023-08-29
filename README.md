@@ -75,7 +75,9 @@ Full doc: [https://mind-network.gitbook.io/mind-lake-sdk](https://mind-network.g
 * v1.0.5
     * Fix bug
 * v1.0.6
-    * Update the connect function        
+    * Update the connect function
+* v1.0.7
+    * Add support for Mind DataPack         
 ## License
 
 This project is licensed under the [MIT] License - see the LICENSE.md file for details

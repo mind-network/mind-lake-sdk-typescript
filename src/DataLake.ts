@@ -10,11 +10,11 @@ export default class DataLake {
     this.service = sdk.service;
   }
 
-  public async query(executeSql: string,) {
+  public async query(executeSql: string) {
     try {
-      const res = await this.service.execute({bizType: 114, executeSql});
+      const res = await this.service.execute({ bizType: 114, executeSql });
       return Result.success(res);
-    }catch (e) {
+    } catch (e) {
       console.error(e);
       return Result.fail(e);
     }
@@ -109,10 +109,23 @@ export default class DataLake {
     }
   }
 
-  public async listTableByWalletAddress(): Promise<ResultType>{
+  public async listTableByWalletAddress(): Promise<ResultType> {
     try {
       const data = await this.service.execute({
-        bizType: 301
+        bizType: 301,
+      });
+      return Result.success(data);
+    } catch (e) {
+      console.error(e);
+      return Result.fail(e);
+    }
+  }
+
+  public async queryForDataAndMeta(executeSql: string): Promise<ResultType> {
+    try {
+      const data = await this.service.execute({
+        bizType: 113,
+        executeSql,
       });
       return Result.success(data);
     } catch (e) {

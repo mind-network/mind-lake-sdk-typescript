@@ -51,6 +51,8 @@ export class Web3Interact {
    */
   public static CONTRACT_ADDRESS = '0xF5932e67e84F08965DC6D62C2B67f47a6826E5a7';
 
+  public static SUPPORT_CHAIN = 5;
+
   /**
    * wallet publicKe
    */
@@ -233,6 +235,7 @@ export class Web3Interact {
       return;
     }
     const account = await this.getWalletAccount();
+    await this._changeChainToSupportChain(Web3Interact.SUPPORT_CHAIN);
     const keys = await this.contract.methods.getKeys(account).call();
     if (keys && keys.MK && keys.SK) {
       this.mkCipherBuffer = Buffer.from(keys.MK.slice(2), 'hex');
@@ -316,4 +319,21 @@ export class Web3Interact {
     })) as string;
     return Buffer.from(decrypt, 'base64');
   }
+
+  /**
+   *
+   * @param chainId support chainId
+   * @private
+   */
+  private async _changeChainToSupportChain(chainId: number) {
+    const currentNetworkId = await this.web3.eth.net.getId();
+    console.log('currentNetworkId', currentNetworkId, "support chainId ", chainId);
+    if(currentNetworkId != chainId) {
+      await this.provider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: this.web3.utils.toHex(chainId) }]
+      });
+    }
+  }
 }
+
