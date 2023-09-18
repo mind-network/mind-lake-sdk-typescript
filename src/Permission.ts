@@ -1,20 +1,20 @@
 import { MindLake } from './MindLake';
 import { Service } from './request';
 import { Bcl } from './util/bcl';
-import { Web3Interact } from './util/web3';
 import { ResultType } from './types';
 import Result from './util/result';
+import { MkManager } from './types';
 
 export default class Permission {
   private readonly service!: Service;
 
-  private readonly web3!: Web3Interact;
+  private readonly mkManager!: MkManager;
 
   private readonly sdk!: MindLake;
 
   constructor(sdk: MindLake) {
     this.service = sdk.service;
-    this.web3 = sdk.web3;
+    this.mkManager = sdk.mkManager;
     this.sdk = sdk;
   }
 
@@ -23,6 +23,7 @@ export default class Permission {
    * @param targetWalletAddress
    */
   public async grant(
+    targetChain: string,
     targetWalletAddress: string,
     columns: Array<string>,
   ): Promise<ResultType> {
@@ -35,10 +36,11 @@ export default class Permission {
 
       const bcl = new Bcl(this.service);
       //get subjectPublicId
-      const res = await this.service.execute<
-        any,
-        { publicKeyId: string }
-      >({ bizType: 119, targetWalletAddress: targetWalletAddress });
+      const res = await this.service.execute<any, { publicKeyId: string }>({
+        bizType: 119,
+        targetWalletAddress: targetWalletAddress,
+        targetChain,
+      });
       if (!res || !res.publicKeyId) {
         throw new Error(
           "Peer user (Subject)'s certificate hasn't been registered.",
@@ -46,9 +48,7 @@ export default class Permission {
       }
       await bcl.createBclBody(this.sdk.registerPukId, res.publicKeyId, '');
 
-      const eachFunc = async (
-        data: Array<string>,
-      ) => {
+      const eachFunc = async (data: Array<string>) => {
         for (const tableColumn of data) {
           const [table, column] = tableColumn.split('.');
           await this._addColumnIntoBcl(bcl, table, column);
@@ -56,7 +56,7 @@ export default class Permission {
       };
 
       await eachFunc(columns);
-      const { privateKeyPem } = await this.sdk.web3.getPkPem();
+      const { privateKeyPem } = await this.sdk.mkManager.getPkPem();
       const sn = await bcl.issueBcl(privateKeyPem, 115);
       return Result.success(sn);
     } catch (e) {
@@ -81,7 +81,7 @@ export default class Permission {
       if (!bcl.bclBody || !bcl.bclBody.serial_num) {
         throw new Error('The policyID is not correct');
       }
-      const { privateKeyPem } = await this.web3.getPkPem();
+      const { privateKeyPem } = await this.mkManager.getPkPem();
       const sn = await bcl.issueBcl(privateKeyPem, 117);
       return Result.success(sn);
     } catch (e) {
@@ -97,6 +97,7 @@ export default class Permission {
    */
   public async revoke(
     targetWalletAddress: string,
+    targetChain: string,
     columns?: Array<{ table: string; column: string }>,
   ): Promise<ResultType> {
     try {
@@ -104,10 +105,11 @@ export default class Permission {
       this.sdk.checkRegistered();
       const bcl = new Bcl(this.service);
       //get subjectPublicId
-      const res = await this.service.execute<
-        any,
-        { publicKeyId: string }
-      >({ bizType: 119, targetWalletAddress: targetWalletAddress });
+      const res = await this.service.execute<any, { publicKeyId: string }>({
+        bizType: 119,
+        targetWalletAddress: targetWalletAddress,
+        targetChain,
+      });
       if (!res || !res.publicKeyId) {
         throw new Error(
           "Peer user (Subject)'s certificate hasn't been registered.",
@@ -125,15 +127,14 @@ export default class Permission {
           data: Array<{ table: string; column: string }>,
         ) => {
           for (const column of data) {
-            const ccSelf = await this.service.execute<
-              any,
-              { groupId: string }
-            >({
-              bizType: 108,
-              schema: 'public',
-              table: column.table,
-              column: column.column,
-            });
+            const ccSelf = await this.service.execute<any, { groupId: string }>(
+              {
+                bizType: 108,
+                schema: 'public',
+                table: column.table,
+                column: column.column,
+              },
+            );
             if (!ccSelf.groupId) {
               throw new Error('groupId is not exist');
             }
@@ -143,7 +144,7 @@ export default class Permission {
         await eachFunc(columns);
         bcl.removeDekGroup(groupIdArray);
       }
-      const { privateKeyPem } = await this.web3.getPkPem();
+      const { privateKeyPem } = await this.mkManager.getPkPem();
       const sn = await bcl.issueBcl(privateKeyPem, 115);
       return Result.success(sn);
     } catch (e) {
@@ -174,11 +175,13 @@ export default class Permission {
 
   public async listOwnerColumn(
     targetWalletAddress: string,
+    targetChain: string,
   ): Promise<ResultType> {
     try {
       const data = await this.service.execute({
         bizType: 131,
         targetWalletAddress,
+        targetChain,
       });
       return Result.success(data);
     } catch (e) {
@@ -189,11 +192,13 @@ export default class Permission {
 
   public async listGrantedColumn(
     targetWalletAddress: string,
+    targetChain: string,
   ): Promise<ResultType> {
     try {
       const data = await this.service.execute({
         bizType: 127,
         targetWalletAddress,
+        targetChain,
       });
       return Result.success(data);
     } catch (e) {
