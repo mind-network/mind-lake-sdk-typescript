@@ -1,5 +1,5 @@
 import { Service } from './request';
-import { APP_KEY, TOKEN_KEY } from './util/constant';
+import { APP_KEY, CHAIN_KEY, TOKEN_KEY } from './util/constant';
 import { CipherHelper } from './util/cipher';
 import { Web3Interact } from './util/web3';
 import { Util } from './util/util';
@@ -9,12 +9,18 @@ import { Bcl } from './util/bcl';
 import {
   ServerInfo,
   RequestMekProvisionBody,
-  RequestRegisterCertificateBody, ResultType, DataType,
+  RequestRegisterCertificateBody,
+  ResultType,
+  DataType,
+  MkManager,
+  ChainInfo,
+  ClerkConfig,
 } from './types';
 import Permission from './Permission';
 import Result from './util/result';
-import pkConfig from '../package.json'
-
+import pkConfig from '../package.json';
+import Clerk from './util/clerk';
+import { SignInProps, UserButtonProps } from '@clerk/types';
 /**
  *
  */
@@ -56,11 +62,13 @@ export class MindLake {
    */
   public crypto!: Crypto;
 
-  public web3!: Web3Interact;
+  public mkManager!: MkManager;
 
   public dataLake!: DataLake;
 
   public permission!: Permission;
+
+  private chainList: Array<ChainInfo> | undefined;
 
   private static instance: MindLake;
 
@@ -68,35 +76,90 @@ export class MindLake {
 
   public static readonly DataType = DataType;
 
-  public static async getInstance(appKey: string, nodeUrl?: string): Promise<MindLake> {
+  public static async getInstance(
+    appKey: string,
+    nodeUrl?: string,
+  ): Promise<MindLake> {
     if (this.instance === undefined) {
-        this.instance = new MindLake(appKey, nodeUrl);
-        await this.instance.web3.checkConnection();
-        await this.instance._getServerInfo();
-        this.instance.crypto = new Crypto(this.instance);
-        this.instance.dataLake = new DataLake(this.instance);
-        this.instance.permission = new Permission(this.instance);
+      this.instance = new MindLake(appKey, nodeUrl);
+      await this.instance._getServerInfo();
+      await this.instance.supportChaninList();
+      const chainStr = localStorage.getItem(CHAIN_KEY);
+      let chain;
+      try {
+        chain = chainStr && JSON.parse(chainStr);
+      } catch (error) {
+        console.error(error);
+      }
+      if (chain?.clerk) {
+        this.instance.mkManager = new Clerk(chain.clerk);
+        let sessionToken;
+        if (this.instance.mkManager instanceof Clerk) {
+          sessionToken = await this.instance.mkManager.init();
+        }
+        if (sessionToken) {
+          const res = await this.instance.service.execute<
+            any,
+            { token: string }
+          >({
+            bizType: 206,
+            clerkToken: sessionToken,
+          });
+          if (res && res.token) {
+            localStorage.setItem(TOKEN_KEY, res.token);
+            await this.instance._init();
+            MindLake.isConnected = true;
+          }
+        } else {
+          MindLake.isConnected = false;
+        }
+      } else {
+        this.instance.mkManager = new Web3Interact();
+        await this.instance.mkManager.checkConnection();
+        if (chain && this.instance.mkManager instanceof Web3Interact) {
+          chain && this.instance.mkManager.setChain(chain);
+        }
+      }
+      this.instance.crypto = new Crypto(this.instance);
+      this.instance.dataLake = new DataLake(this.instance);
+      this.instance.permission = new Permission(this.instance);
     }
     return this.instance;
   }
 
   private constructor(appKey: string, nodeUrl?: string) {
-      localStorage.setItem(APP_KEY, appKey);
-      this.service = new Service(nodeUrl);
-      this.web3 = new Web3Interact();
+    localStorage.setItem(APP_KEY, appKey);
+    this.service = new Service(nodeUrl);
   }
 
   /**
    *connect db
    */
-  public async connect(): Promise<ResultType> {
+  public async connect(chainId: string | number): Promise<ResultType> {
     try {
-      const walletAddress = await this.web3.getWalletAccount();
+      if (!(this.mkManager instanceof Web3Interact)) {
+        this.mkManager = new Web3Interact();
+        this.crypto = new Crypto(this);
+        this.permission = new Permission(this);
+      }
+      if (typeof chainId !== 'number' && typeof chainId !== 'string') {
+        return Result.fail('chainId must be a number or string');
+      }
+      const chain = this.chainList?.find((c) => c.chainId == chainId);
+      if (!chain) {
+        return Result.fail('chain not supported');
+      }
+      if (this.mkManager instanceof Web3Interact) {
+        this.mkManager.setChain(chain);
+        await this.mkManager._changeChainToSupportChain();
+      }
+      const walletAddress = await this.mkManager.getWalletAccount();
+      localStorage.setItem(CHAIN_KEY, JSON.stringify(chain));
       const nonce = await this.service.execute<any, string>({
         bizType: 203,
         walletAddress,
       });
-      const signature = await this.web3.personalSignature(nonce);
+      const signature = await this.mkManager.personalSignature(nonce);
       const res = await this.service.execute<any, { token: string }>({
         bizType: 201,
         walletAddress,
@@ -116,6 +179,38 @@ export class MindLake {
     }
   }
 
+  public async clerkConnect(
+    config?: ClerkConfig,
+    signProps?: SignInProps,
+  ): Promise<ResultType | void> {
+    try {
+      this.mkManager = new Clerk(config);
+      localStorage.setItem(CHAIN_KEY, JSON.stringify({ clerk: { ...config } }));
+      if (this.mkManager instanceof Clerk) {
+        await this.mkManager.init();
+        await this.mkManager.signIn(signProps);
+      }
+    } catch (e) {
+      return Result.fail(e);
+    }
+  }
+
+  public renderClerkUserBotton(dom: HTMLDivElement, props?: UserButtonProps) {
+    if (this.mkManager instanceof Clerk) {
+      this.mkManager.renderUserButton(dom, props);
+    }
+  }
+
+  public async supportChaninList(): Promise<Array<ChainInfo>> {
+    if (!this.chainList) {
+      const result = await this.service.execute<any, Array<ChainInfo>>({
+        bizType: 205,
+      });
+      this.chainList = result;
+    }
+    return this.chainList;
+  }
+
   /**
    * disconnect db
    */
@@ -125,7 +220,7 @@ export class MindLake {
       return Result.success(true);
     } catch (e) {
       console.error(e);
-      return Result.fail(e)
+      return Result.fail(e);
     }
   }
 
@@ -133,13 +228,16 @@ export class MindLake {
    * getEnclaveInfo
    */
   private async _getServerInfo() {
-    const info = await this.service.execute<any, ServerInfo>({
-      bizType: 120,
-    }).catch(e => console.error(e));
+    const info = await this.service
+      .execute<any, ServerInfo>({
+        bizType: 120,
+      })
+      .catch((e) => console.error(e));
     if (info) {
       MindLake.isConnected = true;
       this.publicKey = info.publicKey;
-      this.isRegistered = info.isRegistered && info.isMekProvision && info.isSelfBcl;
+      this.isRegistered =
+        info.isRegistered && info.isMekProvision && info.isSelfBcl;
       this.mekId = info.mekId;
       if (this.isRegistered && this.mekId) {
         await this._getAccount();
@@ -154,7 +252,7 @@ export class MindLake {
       throw new Error('Provision failed');
     }
     if (!this.isRegistered) {
-      const { privateKeyPem, publicKeyPem } = await this.web3.getPkPem();
+      const { privateKeyPem, publicKeyPem } = await this.mkManager.getPkPem();
       const registerPukId = await this._registerCertificate(
         publicKeyPem,
         privateKeyPem,
@@ -219,11 +317,11 @@ export class MindLake {
     privateKeyPem: string,
   ): Promise<string | undefined> {
     const mekId = this.mekId;
-    const mek = await this.web3.getMekBytes();
+    const mek = await this.mkManager.getMekBytes();
     const pukId = CipherHelper.sha256Hash(publicKeyPem);
     const toBeSignedBytes = Buffer.concat([
       Buffer.from(Util.structPackq(mekId)),
-      Buffer.from(pukId, 'latin1'),//important
+      Buffer.from(pukId, 'latin1'), //important
     ]);
     const rsaSign = Buffer.concat([
       Buffer.from('01', 'hex'),
@@ -260,10 +358,9 @@ export class MindLake {
     //
     const bcl = new Bcl(this.service);
     await bcl.createBclBody(this.registerPukId, this.registerPukId, '');
-    const defaultGroup = await this.service.execute<
-      any,
-      { groupId: string }
-    >({ bizType: 108 });
+    const defaultGroup = await this.service.execute<any, { groupId: string }>({
+      bizType: 108,
+    });
     if (!defaultGroup || !defaultGroup.groupId) {
       throw new Error('Get default group error');
     }
@@ -277,7 +374,7 @@ export class MindLake {
   }
 
   private async _genEnvelope() {
-    const mek = await this.web3.getMekBytes();
+    const mek = await this.mkManager.getMekBytes();
     let envelope: any = {};
     const base64Mek = Buffer.from(mek).toString('base64');
     envelope['mek'] = base64Mek;
@@ -300,9 +397,9 @@ export class MindLake {
     }
   }
 
-  public checkRegistered () {
-    if(!this.isRegistered) {
-      throw new Error("Register error, please reLogin to register")
+  public checkRegistered() {
+    if (!this.isRegistered) {
+      throw new Error('Register error, please reLogin to register');
     }
   }
 }

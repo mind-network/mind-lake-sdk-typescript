@@ -1,3 +1,4 @@
+import { ClerkOptions, UserButtonProps } from '@clerk/types';
 export type ResultType = {
   code: number;
   message?: string;
@@ -34,6 +35,22 @@ export type ServerInfo = {
   isSelfBcl: boolean;
 };
 
+export type ChainInfo = {
+  id: number;
+  chainId: string;
+  chainName: string;
+  hexadecimalChainId: string;
+  currency: string;
+  rpcNodeUrl: string;
+  rpcOtherNodeUrl: string;
+  abi: string;
+  smartAddress: string;
+  createTime: string;
+  updateTime: string;
+  status: number;
+  feature: string;
+};
+
 export type RequestMekProvisionBody = {
   bizType: number;
   databasePublicKey: string;
@@ -56,3 +73,31 @@ export type CCEntry = {
   algorithm: number;
   groupId: string;
 };
+
+export interface MkManager {
+  getWalletAccount(): Promise<string>;
+  checkConnection(): Promise<void>;
+  getMekBytes(): Promise<Buffer>;
+  getPkPem(): Promise<{
+    privateKeyPem: string;
+    publicKeyPem: string;
+  }>;
+  personalSignature(signData: string): Promise<string>;
+  encrypt(str: string): Promise<Buffer | undefined>;
+  decrypt(cipher: Buffer): Promise<Buffer>;
+}
+
+/**
+ * target userButton dom node render to
+ */
+export type ClerkConfig = {
+  target?: string | HTMLDivElement;
+  options?: ClerkOptions;
+  userButtonProps?: UserButtonProps;
+};
+
+export type MindLakeConfig = {
+  clerk?: ClerkConfig;
+};
+
+export type ConnectChain = ChainInfo | { clerk: ClerkConfig };

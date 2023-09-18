@@ -1,11 +1,11 @@
 import { Web3Provider } from '@ethersproject/providers';
-import abi from './abi';
 import web3 from 'web3';
 import { Contract } from 'web3-eth-contract';
 import { CipherHelper } from './cipher';
 import { encrypt } from '@metamask/eth-sig-util';
-import { WALLET_key } from './constant';
+import { CHAIN_KEY, WALLET_key } from './constant';
 import { MindLake } from '../MindLake';
+import { ChainInfo, MkManager } from '../types';
 // const encrypt = {};
 
 export interface RequestArguments {
@@ -18,17 +18,10 @@ export interface Web3WithWalletProvider extends Web3Provider {
   selectedAddress: string;
 }
 
-declare global {
-  interface Window {
-    web3: any;
-    ethereum: any
-  }
-}
-
 /**
  * web3 helper
  */
-export class Web3Interact {
+export class Web3Interact implements MkManager {
   private readonly provider: Web3WithWalletProvider;
 
   /**
@@ -52,6 +45,11 @@ export class Web3Interact {
   public static CONTRACT_ADDRESS = '0xF5932e67e84F08965DC6D62C2B67f47a6826E5a7';
 
   public static SUPPORT_CHAIN = 5;
+
+  /**
+   * currnt chaind
+   */
+  public chain: ChainInfo | undefined;
 
   /**
    * wallet publicKe
@@ -78,28 +76,68 @@ export class Web3Interact {
       throw new Error('Please install a wallet');
     }
     let currentProvider;
-    if(window.ethereum.providers) {
-      currentProvider = window.ethereum.providers.find((p: any) => p.isMetaMask);
-    }else {
+    // @ts-ignore
+    if (window.ethereum.providers) {
+      // @ts-ignore
+      currentProvider = window.ethereum.providers.find(
+        (p: any) => p.isMetaMask,
+      );
+    } else {
       currentProvider = window.ethereum;
     }
-    if(!currentProvider.isMetaMask) {
-      throw new Error('Only MetamMask wallet is supported currently. Please install or replace');
+    if (!currentProvider.isMetaMask) {
+      throw new Error(
+        'Only MetamMask wallet is supported currently. Please install or replace',
+      );
     }
     this.provider = currentProvider;
     this.web3 = new web3(currentProvider);
-    this.contract = new this.web3.eth.Contract(
-      // @ts-ignore
-      abi,
-      Web3Interact.CONTRACT_ADDRESS,
-    );
     this._onListen();
+  }
+  async encrypt(str: string): Promise<Buffer | undefined> {
+    const pubKey = await this._getEncryptionPublicKey();
+    if (pubKey) {
+      const enc = encrypt({
+        publicKey: pubKey,
+        data: Buffer.from(str, 'hex').toString('base64'),
+        version: 'x25519-xsalsa20-poly1305',
+      });
+      const buf = Buffer.concat([
+        Buffer.from(enc.ephemPublicKey, 'base64'),
+        Buffer.from(enc.nonce, 'base64'),
+        Buffer.from(enc.ciphertext, 'base64'),
+      ]);
+      return buf;
+    }
+  }
+
+  async decrypt(cipher: Buffer): Promise<Buffer> {
+    const structuredData = {
+      version: 'x25519-xsalsa20-poly1305',
+      ephemPublicKey: cipher.slice(0, 32).toString('base64'),
+      nonce: cipher.slice(32, 56).toString('base64'),
+      ciphertext: cipher.slice(56).toString('base64'),
+    };
+    // Convert data to hex string required by MetaMask
+    const ct = `0x${Buffer.from(
+      JSON.stringify(structuredData),
+      'utf8',
+    ).toString('hex')}`;
+    const decrypt = (await this.provider.request({
+      method: 'eth_decrypt',
+      params: [ct, this.account],
+    })) as string;
+    return Buffer.from(decrypt, 'base64');
+  }
+
+  public setChain(chain: ChainInfo) {
+    this.chain = chain;
   }
 
   private _onListen() {
     this.provider.on('accountsChanged', this._onAccountsChanged.bind(this));
-    this.provider.on("chainChanged", this._onChainChanged.bind(this));
-    this.provider.on("disconnect", this._onDisconnect.bind(this));
+    this.provider.on('chainChanged', this._onChainChanged.bind(this));
+    this.provider.on('disconnect', this._onDisconnect.bind(this));
   }
 
   /**
@@ -111,7 +149,7 @@ export class Web3Interact {
     console.log('Wallet address changed:', accounts && accounts[0]);
     localStorage.setItem(WALLET_key, accounts && accounts[0]);
     this.account = accounts && accounts[0];
-    this._walletChange()
+    this._walletChange();
   }
 
   /**
@@ -120,11 +158,20 @@ export class Web3Interact {
    * @private
    */
   private _onChainChanged(chainId: number) {
-    console.log('Chain changed:  ', chainId, this.account);
+    console.log(
+      'Chain changed:  ',
+      web3.utils.hexToNumber(chainId),
+      this.account,
+    );
+    localStorage.setItem(
+      CHAIN_KEY,
+      JSON.stringify({ chainId: web3.utils.hexToNumber(chainId) as string }),
+    );
+    this._walletChange();
   }
 
   private _walletChange() {
-    if(this.account) {
+    if (this.account) {
       this.mkCipherBuffer = undefined!;
       this.mkBuffer = undefined!;
       this.privateKeyCipherBuffer = undefined!;
@@ -137,7 +184,7 @@ export class Web3Interact {
    * @private
    */
   private _onDisconnect() {
-    console.log('Wallet disconnect: ', )
+    console.log('Wallet disconnect: ');
   }
 
   /**
@@ -153,16 +200,21 @@ export class Web3Interact {
       }
       this.account = accounts[0];
     }
+    localStorage.setItem(WALLET_key, this.account);
     return this.account;
   }
 
   public async checkConnection() {
-    const accounts = await this.provider.request({
-      method: 'eth_accounts'
-    }) as Array<string>;
-    if(accounts.length) {
-      this.account = accounts[0];
-      localStorage.setItem(WALLET_key, accounts[0]);
+    try {
+      const accounts = (await this.provider.request({
+        method: 'eth_accounts',
+      })) as Array<string>;
+      if (accounts.length) {
+        this.account = accounts[0];
+        localStorage.setItem(WALLET_key, accounts[0]);
+      }
+    } catch (error) {
+      console.log(error);
     }
   }
 
@@ -182,7 +234,7 @@ export class Web3Interact {
    * get wallet publicKey
    * @private
    */
-  private async _getEncryptionPublicKey(): Promise<string | undefined> {
+  public async _getEncryptionPublicKey(): Promise<string | undefined> {
     if (this.provider) {
       if (this.publicKey) {
         return this.publicKey;
@@ -200,6 +252,7 @@ export class Web3Interact {
    * get mk
    */
   public async getMekBytes(): Promise<Buffer> {
+    await this._changeChainToSupportChain();
     await this._loadKeysCipherFromChain();
     if (!this.mkCipherBuffer) {
       await this._generateKeysCipherToChain();
@@ -222,10 +275,10 @@ export class Web3Interact {
     const iv = this.privateKeyCipherBuffer.slice(0, 16);
     const cipher = this.privateKeyCipherBuffer.slice(16);
     const decrypt = CipherHelper.aesDecrypt(mk, iv, cipher);
-    const {publicKeyPem, privateKeyPem} = CipherHelper.getPublicKeyPemFromPrivate(decrypt);
+    const { publicKeyPem, privateKeyPem } =
+      CipherHelper.getPublicKeyPemFromPrivate(decrypt);
     return { privateKeyPem, publicKeyPem };
   }
-
 
   /**
    *load keys form chain
@@ -235,7 +288,6 @@ export class Web3Interact {
       return;
     }
     const account = await this.getWalletAccount();
-    await this._changeChainToSupportChain(Web3Interact.SUPPORT_CHAIN);
     const keys = await this.contract.methods.getKeys(account).call();
     if (keys && keys.MK && keys.SK) {
       this.mkCipherBuffer = Buffer.from(keys.MK.slice(2), 'hex');
@@ -280,20 +332,7 @@ export class Web3Interact {
    * @private
    */
   private async _encryptMk(mk: string): Promise<Buffer | undefined> {
-    const pubKey = await this._getEncryptionPublicKey();
-    if (pubKey) {
-      const enc = encrypt({
-        publicKey: pubKey,
-        data: Buffer.from(mk, 'hex').toString('base64'),
-        version: 'x25519-xsalsa20-poly1305',
-      });
-      const buf = Buffer.concat([
-        Buffer.from(enc.ephemPublicKey, 'base64'),
-        Buffer.from(enc.nonce, 'base64'),
-        Buffer.from(enc.ciphertext, 'base64'),
-      ]);
-      return buf;
-    }
+    return this.encrypt(mk);
   }
 
   /**
@@ -302,22 +341,7 @@ export class Web3Interact {
    * @private
    */
   private async _decryptMk(data: Buffer): Promise<Buffer> {
-    const structuredData = {
-      version: 'x25519-xsalsa20-poly1305',
-      ephemPublicKey: data.slice(0, 32).toString('base64'),
-      nonce: data.slice(32, 56).toString('base64'),
-      ciphertext: data.slice(56).toString('base64'),
-    };
-    // Convert data to hex string required by MetaMask
-    const ct = `0x${Buffer.from(
-      JSON.stringify(structuredData),
-      'utf8',
-    ).toString('hex')}`;
-    const decrypt = (await this.provider.request({
-      method: 'eth_decrypt',
-      params: [ct, this.account],
-    })) as string;
-    return Buffer.from(decrypt, 'base64');
+    return this.decrypt(data);
   }
 
   /**
@@ -325,15 +349,51 @@ export class Web3Interact {
    * @param chainId support chainId
    * @private
    */
-  private async _changeChainToSupportChain(chainId: number) {
+  public async _changeChainToSupportChain() {
+    if (!this.chain) {
+      throw new Error('chain not found');
+    }
+    const abi = JSON.parse(this.chain.abi);
+    this.contract = new this.web3.eth.Contract(
+      // @ts-ignore
+      abi,
+      this.chain.smartAddress,
+    );
     const currentNetworkId = await this.web3.eth.net.getId();
-    console.log('currentNetworkId', currentNetworkId, "support chainId ", chainId);
-    if(currentNetworkId != chainId) {
-      await this.provider.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: this.web3.utils.toHex(chainId) }]
-      });
+    console.log(
+      'currentNetworkId',
+      currentNetworkId,
+      'target chainId ',
+      this.chain.chainId,
+    );
+    if (currentNetworkId != Number(this.chain.chainId)) {
+      try {
+        await this.provider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: this.web3.utils.toHex(this.chain.chainId) }],
+        });
+      } catch (error: any) {
+        if (error?.code === 4902) {
+          // Add chain to MetaMask
+          await this.provider.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainName: this.chain.chainName,
+                chainId: web3.utils.toHex(this.chain.chainId),
+                nativeCurrency: {
+                  name: this.chain.currency,
+                  decimals: 18,
+                  symbol: this.chain.currency,
+                },
+                rpcUrls: [this.chain.rpcNodeUrl],
+              },
+            ],
+          });
+        } else {
+          throw new Error(error);
+        }
+      }
     }
   }
 }
-

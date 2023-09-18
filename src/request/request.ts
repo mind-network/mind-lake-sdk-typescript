@@ -4,7 +4,7 @@ import axios, {
   AxiosRequestConfig,
   AxiosResponse,
 } from 'axios';
-import { APP_KEY, TOKEN_KEY, WALLET_key } from '../util/constant';
+import { APP_KEY, CHAIN_KEY, TOKEN_KEY, WALLET_key } from '../util/constant';
 import { MindLake } from '../MindLake';
 
 const URL: string = `https://sdk.mindnetwork.xyz/node`;
@@ -35,19 +35,27 @@ class RequestHttp {
         const wa = localStorage.getItem(WALLET_key);
         //your dapp key
         const app = localStorage.getItem(APP_KEY);
+        const chainStr = localStorage.getItem(CHAIN_KEY);
+        let chain;
+        try {
+          chain = chainStr && JSON.parse(chainStr);
+        } catch (error) {
+          console.log(error);
+        }
         const _config = {
           ...config,
           headers: {
             token: token,
             ver: `v${MindLake.version}`,
             wa,
-            app
+            app,
+            chain: chain?.clerk ? 0 : chain?.chainId,
           },
         };
-        if(MindLake.log) {
-          console.log("request data >>>", config.data);
+        if (MindLake.log) {
+          console.log('request data >>>', config.data);
         }
-        return _config
+        return _config;
       },
       (error: AxiosError) => {
         Promise.reject(error);
@@ -57,8 +65,8 @@ class RequestHttp {
     this.service.interceptors.response.use(
       (response: AxiosResponse) => {
         const { data, config } = response;
-        if(MindLake.log) {
-          console.log("response >>> ", JSON.stringify(data))
+        if (MindLake.log) {
+          console.log('response >>> ', JSON.stringify(data));
         }
         if (NOT_LOGIN_CODE.includes(data.code)) {
           localStorage.removeItem(TOKEN_KEY);

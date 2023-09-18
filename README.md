@@ -77,7 +77,10 @@ Full doc: [https://mind-network.gitbook.io/mind-lake-sdk](https://mind-network.g
 * v1.0.6
     * Update the connect function
 * v1.0.7
-    * Add support for Mind DataPack         
+    * Add support for Mind DataPack  
+* v1.0.13
+    * Support multiple chains
+    * Support clerk          
 ## License
 
 This project is licensed under the [MIT] License - see the LICENSE.md file for details

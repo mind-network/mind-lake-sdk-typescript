@@ -1,22 +1,21 @@
 import { Service } from './request';
-import { Web3Interact } from './util/web3';
 import { CipherHelper } from './util/cipher';
 import { MindLake } from './MindLake';
 // @ts-ignore
 import { v4 as uuidv4 } from 'uuid';
-import { CCEntry, DataType, ResultType } from './types';
+import { CCEntry, DataType, ResultType, MkManager } from './types';
 import Result from './util/result';
 
 export default class Crypto {
   private service!: Service;
 
-  private web3!: Web3Interact;
+  private mkManager!: MkManager;
 
   private sdk!: MindLake;
 
   constructor(sdk: MindLake) {
     this.service = sdk.service;
-    this.web3 = sdk.web3;
+    this.mkManager = sdk.mkManager;
     this.sdk = sdk;
   }
 
@@ -29,34 +28,40 @@ export default class Crypto {
    */
   public async encrypt(
     data: any,
-    tableNameColumnName: string | DataType
+    tableNameColumnName: string | DataType,
   ): Promise<ResultType> {
     try {
       MindLake.checkLogin();
       this.sdk.checkRegistered();
-      const walletAddress = await this.web3.getWalletAccount();
+      const walletAddress = await this.mkManager.getWalletAccount();
       let encType!: number;
       //const { ctxId, decryptedDek, algorithm }
-      let ccEntry!: {ctxId: number, algorithm: number, decryptedDek: Buffer};
-      if(typeof tableNameColumnName === 'string') {
+      let ccEntry!: { ctxId: number; algorithm: number; decryptedDek: Buffer };
+      if (typeof tableNameColumnName === 'string') {
         const [tableName, columnName] = tableNameColumnName.split('.');
-        encType = await this.service.execute<any, number>({bizType: 107, tableName, column: columnName});
-        // @ts-ignore
-        ccEntry = await this._getOrGenDek(
+        encType = await this.service.execute<any, number>({
+          bizType: 107,
           tableName,
-          columnName,
-          walletAddress,
-        );
-      }else {
+          column: columnName,
+        });
+        // @ts-ignore
+        ccEntry = await this._getOrGenDek(tableName, columnName, walletAddress);
+      } else {
         encType = tableNameColumnName;
-        const {ctxId, algorithm, encryptedDek} = await this.service.execute<any, {ctxId: number, algorithm: number, encryptedDek: string}>({bizType: 108});
-        const mekBuffer = await this.web3.getMekBytes();
-        const [_, decryptedDek] = CipherHelper.decryptDekToBase64(mekBuffer, encryptedDek);
-        ccEntry = {ctxId, algorithm, decryptedDek}
+        const { ctxId, algorithm, encryptedDek } = await this.service.execute<
+          any,
+          { ctxId: number; algorithm: number; encryptedDek: string }
+        >({ bizType: 108 });
+        const mekBuffer = await this.mkManager.getMekBytes();
+        const [_, decryptedDek] = CipherHelper.decryptDekToBase64(
+          mekBuffer,
+          encryptedDek,
+        );
+        ccEntry = { ctxId, algorithm, decryptedDek };
       }
 
-      if(encType > 4) {
-        encType += 1
+      if (encType > 4) {
+        encType += 1;
       }
       const encodeDataBuffer = CipherHelper.encodeDataByType(data, encType);
 
@@ -69,7 +74,11 @@ export default class Crypto {
       let encrypted_data;
       const iv = CipherHelper.randomBytes();
       if (ccEntry.algorithm === 3) {
-        encrypted_data = CipherHelper.aesEncrypt(ccEntry.decryptedDek, iv, data_to_enc);
+        encrypted_data = CipherHelper.aesEncrypt(
+          ccEntry.decryptedDek,
+          iv,
+          data_to_enc,
+        );
       }
       if (!encrypted_data) {
         throw new Error('aesEncrypt error');
@@ -93,12 +102,15 @@ export default class Crypto {
     try {
       MindLake.checkLogin();
       this.sdk.checkRegistered();
-      const mek = await this.web3.getMekBytes();
+      const mek = await this.mkManager.getMekBytes();
       const encryptData = hex.replace('\\x', '');
       const encryptDataBuffer = Buffer.from(encryptData, 'hex');
       const header = this._extractCryptoHeader(encryptDataBuffer);
       const cxtId = this._extractCtxId(header);
-      const { encryptedDek, algorithm } = await this.service.execute<any, {encryptedDek: string, algorithm: number}>({
+      const { encryptedDek, algorithm } = await this.service.execute<
+        any,
+        { encryptedDek: string; algorithm: number }
+      >({
         bizType: 111,
         ctxId: String(cxtId),
       });
@@ -139,12 +151,10 @@ export default class Crypto {
     column: string,
     walletAddress: string,
   ) {
-    const mekBuffer = await this.web3.getMekBytes();
-    let cc = await this._queryCCEntryByName(
-      table,
-      column,
-      walletAddress,
-    ).catch(e => {});
+    const mekBuffer = await this.mkManager.getMekBytes();
+    let cc = await this._queryCCEntryByName(table, column, walletAddress).catch(
+      (e) => {},
+    );
     if (!cc) {
       cc = await this._genCCEntryFromLocal(table, column);
     }
@@ -169,16 +179,13 @@ export default class Crypto {
     });
   }
 
-  private async _genCCEntryFromLocal(
-    table: string,
-    column: string,
-  ) {
+  private async _genCCEntryFromLocal(table: string, column: string) {
     const dekId = await this.service.execute<any, number>({
       bizType: 109,
       mekId: this.sdk.mekId,
     });
     const dek: Buffer = CipherHelper.randomBytes();
-    const mek = await this.web3.getMekBytes();
+    const mek = await this.mkManager.getMekBytes();
     return this._genSQLInsertDek(
       this.sdk.mekId,
       dekId,
