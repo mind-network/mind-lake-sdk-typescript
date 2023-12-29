@@ -55,7 +55,8 @@ mind-lake-sdk-typescript
 
 ## Help
 
-Full doc: [https://mind-network.gitbook.io/mind-lake-sdk](https://mind-network.gitbook.io/mind-lake-sdk) 
+Full doc: [https://mind-network.gitbook.io/mind-lake-sdk](https://mind-network.gitbook.io/mind-lake-sdk)
+Get started:[https://mind-network.gitbook.io/mind-lake-sdk/get-started](https://mind-network.gitbook.io/mind-lake-sdk/get-started)
 
 ## Authors
 * Joshua [@JoshuaW55818202](https://twitter.com/JoshuaW55818202)
